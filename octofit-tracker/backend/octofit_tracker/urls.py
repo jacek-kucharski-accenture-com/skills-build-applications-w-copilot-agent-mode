@@ -14,10 +14,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+
+import os
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
 from rest_framework import routers
-from .views import TeamViewSet, CustomUserViewSet, ActivityViewSet, LeaderboardViewSet, WorkoutViewSet, api_root
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .views import TeamViewSet, CustomUserViewSet, ActivityViewSet, LeaderboardViewSet, WorkoutViewSet
+
 
 router = routers.DefaultRouter()
 router.register(r'users', CustomUserViewSet)
@@ -26,8 +32,28 @@ router.register(r'activities', ActivityViewSet)
 router.register(r'leaderboard', LeaderboardViewSet)
 router.register(r'workouts', WorkoutViewSet)
 
+# API root with dynamic Codespace URL
+@api_view(['GET'])
+def api_root(request, format=None):
+    codespace_name = os.environ.get('CODESPACE_NAME', None)
+    if codespace_name:
+        base_url = f"https://{codespace_name}-8000.app.github.dev/api/"
+    else:
+        base_url = "http://localhost:8000/api/"
+    return Response({
+        'users': base_url + 'users/',
+        'teams': base_url + 'teams/',
+        'activities': base_url + 'activities/',
+        'leaderboard': base_url + 'leaderboard/',
+        'workouts': base_url + 'workouts/',
+    })
+
+def root_welcome(request):
+    return HttpResponse("<h2>Welcome to Octofit Tracker API</h2><p>Visit <a href='/api/'>/api/</a> for the API root.</p>")
+
 urlpatterns = [
+    path('', root_welcome, name='root-welcome'),
     path('admin/', admin.site.urls),
-    path('', api_root, name='api-root'),
-    path('', include(router.urls)),
+    path('api/', api_root, name='api-root'),
+    path('api/', include(router.urls)),
 ]
